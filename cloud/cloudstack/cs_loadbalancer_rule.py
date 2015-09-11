@@ -178,8 +178,8 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
         if rules:
             return rules['loadbalancerrule'][0]
 
-    def create_lb_rule(self):
-        args = {
+    def _get_common_args(self):
+        return {
             'account': self.get_account(key='name'),
             'domainid': self.get_domain(key='id'),
             'projectid': self.get_project(key='id'),
@@ -187,6 +187,9 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
             'publicipid': self.get_ip_address(self.module.params.get('public_ip'), key='id'),
             'name': self.module.params.get('name'),
         }
+
+    def create_lb_rule(self):
+        args = self._get_common_args()
         rule = self.get_rule(**args)
         if not rule and not self.module.check_mode:
             args.update({
@@ -206,16 +209,8 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
 
         return rule
 
-
     def delete_lb_rule(self):
-        args = {
-            'account': self.get_account(key='name'),
-            'domainid': self.get_domain(key='id'),
-            'projectid': self.get_project(key='id'),
-            'zoneid': self.get_zone(key='id'),
-            'publicipid': self.get_ip_address(self.module.params.get('public_ip'), key='id'),
-            'name': self.module.params.get('name'),
-        }
+        args = self._get_common_args()
         rule = self.get_rule(**args)
         if rule and not self.module.check_mode:
             res = self.cs.deleteLoadBalancerRule(id=rule['id'])
