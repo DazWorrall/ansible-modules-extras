@@ -156,12 +156,7 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
             'cidrlist': 'cidrlist',
         }
 
-    def get_ip_address(self, ip_address=None, key=None):
-        if ip_address is None:
-            ip_address = self.module.params.get('ip_address')
-        if not ip_address:
-            self.module.fail_json(msg="IP address param 'ip_address' is required")
-
+    def get_ip_address(self, ip_address, key=None):
         args = {}
         args['ipaddress'] = ip_address
         args['account'] = self.get_account(key='name')
