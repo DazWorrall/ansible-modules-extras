@@ -35,6 +35,8 @@ options:
     description:
       - List of VMs to assign to or remove from the rule
     required: true
+    type: list
+    aliases: [ 'vm' ]
   state:
     description:
       - Should the VMs be present or absent from the rule
@@ -215,7 +217,7 @@ def main():
     module = AnsibleModule(
         argument_spec = dict(
             name = dict(),
-            vms = dict(required=True),
+            vms = dict(required=True, aliases=['vm'], type='list'),
             state = dict(choices=['present', 'absent'], default='present'),
             zone = dict(default=None),
             domain = dict(default=None),
