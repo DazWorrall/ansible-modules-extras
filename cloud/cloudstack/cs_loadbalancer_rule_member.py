@@ -64,7 +64,7 @@ EXAMPLES = '''
 # Add VMs to Load Balancer
 - local_action:
     module: cs_loadbalancer_rule_member
-    name: balance_http:
+    name: balance_http
     vms:
       - VM1
       - VM2
@@ -72,11 +72,33 @@ EXAMPLES = '''
 # Remove VMs from Load Balancer
 - local_action:
     module: cs_loadbalancer_rule_member
-    name: balance_http:
+    name: balance_http
     vms:
       - VM3
       - VM4
     state: absent
+
+# Rolling upgrade of hosts
+- hosts: webservers
+  serial: 1
+  pre_tasks:
+    - name: Remove from load balancer
+      local_action:
+      module: cs_loadbalancer_rule_member
+      name: balance_http
+      vms:
+        - "{{ ansible_hostname }}"
+      state: absent
+  tasks:
+    # Perform update
+  post_tasks:
+    - name: Add to loadbalancer
+      local_action:
+      module: cs_loadbalancer_rule_member
+      name: balance_http
+      vms:
+        - "{{ ansible_hostname }}"
+      state: present
 '''
 
 RETURN = '''
