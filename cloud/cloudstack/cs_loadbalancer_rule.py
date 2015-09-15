@@ -37,7 +37,7 @@ options:
       - Required when using C(state=present).
     required: false
     choices: [ 'source', 'roundrobin', 'leastconn' ]
-    default: null
+    default: 'source'
   private_port:
     description:
       - The private port of the private ip address/virtual machine where the
@@ -240,7 +240,7 @@ def main():
     module = AnsibleModule(
         argument_spec = dict(
             name = dict(required=True),
-            algorithm = dict(choices=['source', 'roundrobin', 'leastconn'], required=False),
+            algorithm = dict(choices=['source', 'roundrobin', 'leastconn'], required=False, default='source'),
             private_port = dict(type='int', required=False),
             public_port = dict(type='int', required=False),
             state = dict(choices=['present', 'absent'], default='present'),
