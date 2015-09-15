@@ -62,14 +62,14 @@ options:
       - Use M(cs_firewall) for managing firewall rules.
     required: false
     default: false
-  cidr_list:
+  cidr:
     description:
-      - The cidr list to forward traffic from
+      - CIDR (full notation) to be used for firewall rule if required
     required: false
     default: null
   project:
     description:
-      - Name of the project the firewall rule is related to.
+      - Name of the project the load balancer IP address is related to.
     required: false
     default: null
   state:
@@ -163,7 +163,7 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
             'publicport': 'public_port',
             'privateport': 'private_port',
             'algorithm': 'algorithm',
-            'cidrlist': 'cidrlist',
+            'cidrlist': 'cidr',
         }
 
     def get_ip_address(self, ip_address, key=None):
@@ -201,7 +201,7 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
                 'algorithm': self.module.params.get('algorithm'),
                 'privateport': self.module.params.get('private_port'),
                 'publicport': self.module.params.get('public_port'),
-                'cidrlist': self.module.params.get('cidr_list'),
+                'cidrlist': self.module.params.get('cidr'),
             })
             res = self.cs.createLoadBalancerRule(**args)
             if 'errortext' in res:
@@ -238,7 +238,7 @@ def main():
             public_port = dict(type='int', default=10, required=False),
             state = dict(choices=['present', 'absent'], default='present'),
             public_ip = dict(required=False),
-            cidr_list = dict(required=False),
+            cidr = dict(required=False),
             project = dict(default=None, required=False),
             open_firewall = dict(choices=BOOLEANS, default=False),
             zone = dict(default=None),
