@@ -201,6 +201,8 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
         publicport = self.module.params.get('public_port')
         if not all([algorithm, privateport, privateport]):
             self.module.fail_json(msg="algorithm, private_port and public_port are required to create a rule")
+        if not rule:
+            self.result['changed'] = True
         if not rule and not self.module.check_mode:
             args.update({
                 'algorithm': algorithm,
@@ -216,13 +218,14 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
             if poll_async:
                 res = self.poll_job(res, 'loadbalancer')
             rule = res
-            self.result['changed'] = True
 
         return rule
 
     def delete_lb_rule(self):
         args = self._get_common_args()
         rule = self.get_rule(**args)
+        if rule:
+            self.result['changed'] = True
         if rule and not self.module.check_mode:
             res = self.cs.deleteLoadBalancerRule(id=rule['id'])
             if 'errortext' in res:
@@ -230,7 +233,6 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
             poll_async = self.module.params.get('poll_async')
             if poll_async:
                 res = self._poll_job(res, 'loadbalancer')
-            self.result['changed'] = True
         return rule
 
 
