@@ -134,7 +134,9 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
             'zoneid': self.get_zone(key='id'),
         }
 
-    def add_members(self):
+    def _change_members(self, operation):
+        if operation not in ['add', 'remove']:
+            raise RuntimeError('Bad operation: %s' % operation)
         args = self._get_common_args()
         rule = self.get_rule(name=self.module.params.get('name'), **args)
         if not rule:
@@ -145,31 +147,40 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
             for vm in res.get('loadbalancerruleinstance', []):
                 existing[vm['name']] = vm['id']
             wanted_names = self.module.params.get('vms')
-            to_add = set(wanted_names) - set(existing.keys())
-            if to_add:
-                vms = self.cs.listVirtualMachines(**args)
-                to_add_ids = []
-                for name in to_add:
-                    for vm in vms.get('virtualmachine', []):
-                        if vm['name'] == name:
-                            to_add_ids.append(vm['id'])
-                            break
-                    else:
-                        self.module.fail_json(msg="Unknown VM: %s" % name)
-                res = self.cs.assignToLoadBalancerRule(
-                    id = rule['id'],
-                    virtualmachineids = to_add_ids,
-                )
-                if 'errortext' in res:
-                    self.module.fail_json(msg="Failed: '%s'" % res['errortext'])
-                poll_async = self.module.params.get('poll_async')
-                if poll_async:
-                    self.poll_job(res)
-                self.result['changed'] = True
+            if operation =='add':
+                cs_func = self.cs.assignToLoadBalancerRule
+                to_change = set(wanted_names) - set(existing.keys())
+            else:
+                cs_func = self.cs.removeFromLoadBalancerRule
+                to_change = set(wanted_names) & set(existing.keys())
+            if not to_change:
+                return rule
+            vms = self.cs.listVirtualMachines(**args)
+            to_change_ids = []
+            for name in to_change:
+                for vm in vms.get('virtualmachine', []):
+                    if vm['name'] == name:
+                        to_change_ids.append(vm['id'])
+                        break
+                else:
+                    self.module.fail_json(msg="Unknown VM: %s" % name)
+            res = cs_func(
+                id = rule['id'],
+                virtualmachineids = to_change_ids,
+            )
+            if 'errortext' in res:
+                self.module.fail_json(msg="Failed: '%s'" % res['errortext'])
+            poll_async = self.module.params.get('poll_async')
+            if poll_async:
+                self.poll_job(res)
+            self.result['changed'] = True
         return rule
 
+    def add_members(self):
+        return self._change_members('add')
+
     def remove_members(self):
-        raise NotImplementedError()
+        return self._change_members('remove')
 
 
 def main():
@@ -203,7 +214,7 @@ def main():
 
         state = module.params.get('state')
         if state in ['absent']:
-            rule = acs_lb_rule.delete_lb_rule()
+            rule = acs_lb_rule_member.remove_members()
         else:
             rule = acs_lb_rule_member.add_members()
 
