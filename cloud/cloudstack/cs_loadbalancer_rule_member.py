@@ -168,29 +168,31 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
         rule = self.get_rule(name=self.module.params.get('name'), **args)
         if not rule:
             self.module.fail_json(msg="Unknown rule: %s" % self.module.params.get('name'))
-        if not self.module.check_mode:
-            res = self.cs.listLoadBalancerRuleInstances(id=rule['id'])
-            existing = {}
-            for vm in res.get('loadbalancerruleinstance', []):
-                existing[vm['name']] = vm['id']
-            wanted_names = self.module.params.get('vms')
-            if operation =='add':
-                cs_func = self.cs.assignToLoadBalancerRule
-                to_change = set(wanted_names) - set(existing.keys())
+        res = self.cs.listLoadBalancerRuleInstances(id=rule['id'])
+        existing = {}
+        for vm in res.get('loadbalancerruleinstance', []):
+            existing[vm['name']] = vm['id']
+        wanted_names = self.module.params.get('vms')
+        if operation =='add':
+            cs_func = self.cs.assignToLoadBalancerRule
+            to_change = set(wanted_names) - set(existing.keys())
+        else:
+            cs_func = self.cs.removeFromLoadBalancerRule
+            to_change = set(wanted_names) & set(existing.keys())
+        if not to_change:
+            return rule
+        vms = self.cs.listVirtualMachines(**args)
+        to_change_ids = []
+        for name in to_change:
+            for vm in vms.get('virtualmachine', []):
+                if vm['name'] == name:
+                    to_change_ids.append(vm['id'])
+                    break
             else:
-                cs_func = self.cs.removeFromLoadBalancerRule
-                to_change = set(wanted_names) & set(existing.keys())
-            if not to_change:
-                return rule
-            vms = self.cs.listVirtualMachines(**args)
-            to_change_ids = []
-            for name in to_change:
-                for vm in vms.get('virtualmachine', []):
-                    if vm['name'] == name:
-                        to_change_ids.append(vm['id'])
-                        break
-                else:
-                    self.module.fail_json(msg="Unknown VM: %s" % name)
+                self.module.fail_json(msg="Unknown VM: %s" % name)
+        if to_change_ids:
+            self.result['changed'] = True
+        if to_change_ids and not self.module.check_mode:
             res = cs_func(
                 id = rule['id'],
                 virtualmachineids = to_change_ids,
@@ -200,7 +202,6 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
             poll_async = self.module.params.get('poll_async')
             if poll_async:
                 self.poll_job(res)
-            self.result['changed'] = True
         return rule
 
     def add_members(self):
