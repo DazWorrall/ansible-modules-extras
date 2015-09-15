@@ -196,11 +196,16 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
     def create_lb_rule(self):
         args = self._get_common_args()
         rule = self.get_rule(**args)
+        algorithm = self.module.params.get('algorithm')
+        privateport = self.module.params.get('private_port')
+        publicport = self.module.params.get('public_port')
+        if not all([algorithm, privateport, privateport]):
+            self.module.fail_json(msg="algorithm, private_port and public_port are required to create a rule")
         if not rule and not self.module.check_mode:
             args.update({
-                'algorithm': self.module.params.get('algorithm'),
-                'privateport': self.module.params.get('private_port'),
-                'publicport': self.module.params.get('public_port'),
+                'algorithm': algorithm,
+                'privateport': privateport,
+                'publicport': publicport,
                 'cidrlist': self.module.params.get('cidr'),
             })
             res = self.cs.createLoadBalancerRule(**args)
