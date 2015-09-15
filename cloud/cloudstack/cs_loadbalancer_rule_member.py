@@ -157,7 +157,7 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
 
     def _change_members(self, operation):
         if operation not in ['add', 'remove']:
-            raise RuntimeError('Bad operation: %s' % operation)
+            self.module.fail_json(msg="Bad operation: %s" % operation)
         args = self._get_common_args()
         rule = self.get_rule(name=self.module.params.get('name'), **args)
         if not rule:
