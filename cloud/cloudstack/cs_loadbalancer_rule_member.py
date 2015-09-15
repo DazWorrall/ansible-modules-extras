@@ -41,6 +41,11 @@ options:
     required: true
     default: 'present'
     choices: [ 'present', 'absent' ]
+  project:
+    description:
+      - Name of the project the firewall rule is related to.
+    required: false
+    default: null
   domain:
     description:
       - Domain the rule is related to.
@@ -153,6 +158,7 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
             'account': self.get_account(key='name'),
             'domainid': self.get_domain(key='id'),
             'zoneid': self.get_zone(key='id'),
+            'projectid': self.get_project(key='id'),
         }
 
     def _change_members(self, operation):
@@ -212,6 +218,7 @@ def main():
             state = dict(choices=['present', 'absent'], default='present'),
             zone = dict(default=None),
             domain = dict(default=None),
+            project = dict(default=None, required=False),
             account = dict(default=None),
             poll_async = dict(choices=BOOLEANS, default=True),
             api_key = dict(default=None),
