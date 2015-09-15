@@ -234,8 +234,8 @@ def main():
         argument_spec = dict(
             name = dict(),
             algorithm = dict(choices=['source', 'roundrobin', 'leastconn'], required=False),
-            private_port = dict(type='int', default=10, required=False),
-            public_port = dict(type='int', default=10, required=False),
+            private_port = dict(type='int', required=False),
+            public_port = dict(type='int', required=False),
             state = dict(choices=['present', 'absent'], default='present'),
             public_ip = dict(required=False),
             cidr = dict(required=False),
