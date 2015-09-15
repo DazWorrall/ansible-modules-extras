@@ -67,6 +67,11 @@ options:
       - The cidr list to forward traffic from
     required: false
     default: null
+  project:
+    description:
+      - Name of the project the firewall rule is related to.
+    required: false
+    default: null
   state:
     description:
       - State of the instance.
@@ -234,6 +239,7 @@ def main():
             state = dict(choices=['present', 'absent'], default='present'),
             public_ip = dict(required=False),
             cidr_list = dict(required=False),
+            project = dict(default=None, required=False),
             open_firewall = dict(choices=BOOLEANS, default=False),
             zone = dict(default=None),
             domain = dict(default=None),

@@ -152,7 +152,6 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
         return {
             'account': self.get_account(key='name'),
             'domainid': self.get_domain(key='id'),
-            'projectid': self.get_project(key='id'),
             'zoneid': self.get_zone(key='id'),
         }
 
@@ -162,7 +161,7 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
         args = self._get_common_args()
         rule = self.get_rule(name=self.module.params.get('name'), **args)
         if not rule:
-            self.module.fail_json(msg="Unknown rule: %s" % args['name'])
+            self.module.fail_json(msg="Unknown rule: %s" % self.module.params.get('name'))
         if not self.module.check_mode:
             res = self.cs.listLoadBalancerRuleInstances(id=rule['id'])
             existing = {}
