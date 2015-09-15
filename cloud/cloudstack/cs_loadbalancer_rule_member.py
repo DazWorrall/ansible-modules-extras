@@ -216,7 +216,7 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
 def main():
     module = AnsibleModule(
         argument_spec = dict(
-            name = dict(),
+            name = dict(required=True),
             vms = dict(required=True, aliases=['vm'], type='list'),
             state = dict(choices=['present', 'absent'], default='present'),
             zone = dict(default=None),
