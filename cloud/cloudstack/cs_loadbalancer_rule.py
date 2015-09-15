@@ -62,6 +62,11 @@ options:
       - Use M(cs_firewall) for managing firewall rules.
     required: false
     default: false
+  cidr_list:
+    description:
+      - The cidr list to forward traffic from
+    required: false
+    default: null
   state:
     description:
       - State of the instance.
@@ -191,6 +196,7 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
                 'algorithm': self.module.params.get('algorithm'),
                 'privateport': self.module.params.get('private_port'),
                 'publicport': self.module.params.get('public_port'),
+                'cidrlist': self.module.params.get('cidr_list'),
             })
             res = self.cs.createLoadBalancerRule(**args)
             if 'errortext' in res:
@@ -227,6 +233,7 @@ def main():
             public_port = dict(type='int', default=10, required=False),
             state = dict(choices=['present', 'absent'], default='present'),
             public_ip = dict(required=False),
+            cidr_list = dict(required=False),
             open_firewall = dict(choices=BOOLEANS, default=False),
             zone = dict(default=None),
             domain = dict(default=None),
