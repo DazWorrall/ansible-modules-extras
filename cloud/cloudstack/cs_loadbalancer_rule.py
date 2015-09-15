@@ -237,7 +237,7 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
 def main():
     module = AnsibleModule(
         argument_spec = dict(
-            name = dict(),
+            name = dict(required=True),
             algorithm = dict(choices=['source', 'roundrobin', 'leastconn'], required=False),
             private_port = dict(type='int', required=False),
             public_port = dict(type='int', required=False),
