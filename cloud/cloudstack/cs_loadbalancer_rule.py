@@ -67,6 +67,11 @@ options:
       - CIDR (full notation) to be used for firewall rule if required
     required: false
     default: null
+  protocol:
+    description:
+      - The protocol to be used on the load balancer
+    required: false
+    default: null
   project:
     description:
       - Name of the project the load balancer IP address is related to.
@@ -164,6 +169,7 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
             'privateport': 'private_port',
             'algorithm': 'algorithm',
             'cidrlist': 'cidr',
+            'protocol': 'protocol',
         }
 
     def get_ip_address(self, ip_address, key=None):
@@ -209,6 +215,7 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
                 'privateport': privateport,
                 'publicport': publicport,
                 'cidrlist': self.module.params.get('cidr'),
+                'protocol': self.module.params.get('protocol'),
             })
             res = self.cs.createLoadBalancerRule(**args)
             if 'errortext' in res:
@@ -246,6 +253,7 @@ def main():
             state = dict(choices=['present', 'absent'], default='present'),
             public_ip = dict(required=False),
             cidr = dict(required=False),
+            protocol = dict(required=False),
             project = dict(default=None, required=False),
             open_firewall = dict(choices=BOOLEANS, default=False),
             zone = dict(default=None),
