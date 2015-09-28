@@ -118,10 +118,20 @@ EXAMPLES = '''
     public_port: 80
     private_port: 8080
 
+# update algorithm of an existing load balancer rule
+- local_action:
+    module: cs_loadbalancer_rule
+    name: balance_http
+    public_ip: 1.2.3.4
+    algorithm: roundrobin
+    public_port: 80
+    private_port: 8080
+
 # Delete a load balancer rule
 - local_action:
     module: cs_loadbalancer_rule
     name: balance_http
+    public_ip: 1.2.3.4
     state: absent
 '''
 
@@ -172,6 +182,11 @@ description:
   returned: success
   type: string
   sample: "http load balancer rule"
+protocol:
+  description: Protocol of the rule.
+  returned: success
+  type: string
+  sample: "tcp"
 public_port:
   description: Public port.
   returned: success
