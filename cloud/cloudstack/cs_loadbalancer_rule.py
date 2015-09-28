@@ -21,15 +21,15 @@
 DOCUMENTATION = '''
 ---
 module: cs_loadbalancer_rule
-short_description: Manages load balancer rules
+short_description: Manages load balancer rules on Apache CloudStack based clouds.
 description:
-    - Add or remove load balancer rules
+    - Add, update and remove load balancer rules.
 version_added: '2.0'
 author: "Darren Worrall @dazworrall"
 options:
   name:
     description:
-      - The name of the load balancer rule
+      - The name of the load balancer rule.
     required: true
   algorithm:
     description:
@@ -40,15 +40,16 @@ options:
     default: 'source'
   private_port:
     description:
-      - The private port of the private ip address/virtual machine where the
-        network traffic will be load balanced to
+      - The private port of the private ip address/virtual machine where the network traffic will be load balanced to.
       - Required when using C(state=present).
+      - Can not be changed once the rule exists due API limitation.
     required: false
     default: null
   public_port:
     description:
-      - The public port from where the network traffic will be load balanced from
+      - The public port from where the network traffic will be load balanced from.
       - Required when using C(state=present).
+      - Can not be changed once the rule exists due API limitation.
     required: true
     default: null
   public_ip:
@@ -64,12 +65,12 @@ options:
     default: false
   cidr:
     description:
-      - CIDR (full notation) to be used for firewall rule if required
     required: false
     default: null
   protocol:
     description:
       - The protocol to be used on the load balancer
+      - CIDR (full notation) to be used for firewall rule if required.
     required: false
     default: null
   project:
@@ -79,7 +80,7 @@ options:
     default: null
   state:
     description:
-      - State of the instance.
+      - State of the rule.
     required: true
     default: 'present'
     choices: [ 'present', 'absent' ]
@@ -146,6 +147,51 @@ domain:
   returned: success
   type: string
   sample: example domain
+algorithm:
+  description: Load balancer algorithm used.
+  returned: success
+  type: string
+  sample: "source"
+cidr:
+  description: CIDR to forward traffic from.
+  returned: success
+  type: string
+  sample: ""
+name:
+  description: Name of the rule.
+  returned: success
+  type: string
+  sample: "http-lb"
+description:
+  description: Description of the rule.
+  returned: success
+  type: string
+  sample: "http load balancer rule"
+public_port:
+  description: Public port.
+  returned: success
+  type: string
+  sample: 80
+private_port:
+  description: Private IP address.
+  returned: success
+  type: string
+  sample: 80
+public_ip:
+  description: Public IP address.
+  returned: success
+  type: string
+  sample: "1.2.3.4"
+tags:
+  description: List of resource tags associated with the rule.
+  returned: success
+  type: dict
+  sample: '[ { "key": "foo", "value": "bar" } ]'
+state:
+  description: State of the rule.
+  returned: success
+  type: string
+  sample: "Add"
 '''
 
 
