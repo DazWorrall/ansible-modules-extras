@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # (c) 2015, Darren Worrall <darren@iweb.co.uk>
+# (c) 2015, René Moser <mail@renemoser.net>
 #
 # This file is part of Ansible
 #
@@ -25,7 +26,9 @@ short_description: Manages load balancer rules on Apache CloudStack based clouds
 description:
     - Add, update and remove load balancer rules.
 version_added: '2.0'
-author: "Darren Worrall @dazworrall"
+author:
+    - "Darren Worrall (@dazworrall)"
+    - "René Moser (@resmo)"
 options:
   name:
     description:
