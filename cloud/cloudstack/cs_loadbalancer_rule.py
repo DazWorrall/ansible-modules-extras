@@ -277,6 +277,8 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
         else:
             rule = self._create_lb_rule(rule)
 
+        if rule:
+            rule = self.ensure_tags(resource=rule, resource_type='LoadBalancer')
         return rule
 
 
