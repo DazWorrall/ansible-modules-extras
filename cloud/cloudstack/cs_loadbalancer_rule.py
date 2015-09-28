@@ -211,11 +211,14 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
         super(AnsibleCloudStackLBRule, self).__init__(module)
         self.returns = {
             'publicip': 'public_ip',
-            'publicport': 'public_port',
-            'privateport': 'private_port',
             'algorithm': 'algorithm',
             'cidrlist': 'cidr',
             'protocol': 'protocol',
+        }
+        # these values will be casted to int
+        self.returns_to_int = {
+            'publicport': 'public_port',
+            'privateport': 'private_port',
         }
 
 
