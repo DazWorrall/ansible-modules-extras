@@ -227,6 +227,7 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
         if rules:
             return rules['loadbalancerrule'][0]
 
+
     def _get_common_args(self):
         return {
             'account': self.get_account(key='name'),
@@ -237,36 +238,66 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
             'name': self.module.params.get('name'),
         }
 
-    def create_lb_rule(self):
+
+    def present_lb_rule(self):
+        missing_params = []
+        for required_params in [
+            'algorithm',
+            'private_port',
+            'public_port',
+        ]:
+            if not self.module.params.get(required_params):
+                missing_params.append(required_params)
+        if missing_params:
+            self.module.fail_json(msg="missing required arguments: %s" % ','.join(missing_params))
+
         args = self._get_common_args()
         rule = self.get_rule(**args)
-        algorithm = self.module.params.get('algorithm')
-        privateport = self.module.params.get('private_port')
-        publicport = self.module.params.get('public_port')
-        if not all([algorithm, privateport, privateport]):
-            self.module.fail_json(msg="algorithm, private_port and public_port are required to create a rule")
-        if not rule:
-            self.result['changed'] = True
-        if not rule and not self.module.check_mode:
-            args.update({
-                'algorithm': algorithm,
-                'privateport': privateport,
-                'publicport': publicport,
-                'cidrlist': self.module.params.get('cidr'),
-                'protocol': self.module.params.get('protocol'),
-            })
+        if rule:
+            rule = self._update_lb_rule(rule)
+        else:
+            rule = self._create_lb_rule(rule)
+
+        return rule
+
+
+    def _create_lb_rule(self, rule):
+        self.result['changed'] = True
+        if not self.module.check_mode:
+            args = self._get_common_args()
+            args['algorithm']   = self.module.params.get('algorithm')
+            args['privateport'] = self.module.params.get('private_port')
+            args['publicport']  = self.module.params.get('public_port')
+            args['cidrlist']    = self.module.params.get('cidr')
+            args['protocol']    = self.module.params.get('protocol')
             res = self.cs.createLoadBalancerRule(**args)
             if 'errortext' in res:
                 self.module.fail_json(msg="Failed: '%s'" % res['errortext'])
 
             poll_async = self.module.params.get('poll_async')
             if poll_async:
-                res = self.poll_job(res, 'loadbalancer')
-            rule = res
-
+                rule = self.poll_job(res, 'loadbalancer')
         return rule
 
-    def delete_lb_rule(self):
+
+    def _update_lb_rule(self, rule):
+        args                = {}
+        args['id']          = rule['id']
+        args['algorithm']   = self.module.params.get('algorithm')
+        if self.has_changed(args, rule):
+            self.result['changed'] = True
+            if not self.module.check_mode:
+                res = self.cs.updateLoadBalancerRule(**args)
+                if 'errortext' in res:
+                    self.module.fail_json(msg="Failed: '%s'" % res['errortext'])
+
+                poll_async = self.module.params.get('poll_async')
+                if poll_async:
+                    rule = self.poll_job(res, 'loadbalancer')
+        return rule
+
+
+    def absent_lb_rule(self):
         args = self._get_common_args()
         rule = self.get_rule(**args)
         if rule:
@@ -319,9 +350,9 @@ def main():
 
         state = module.params.get('state')
         if state in ['absent']:
-            rule = acs_lb_rule.delete_lb_rule()
+            rule = acs_lb_rule.absent_lb_rule()
         else:
-            rule = acs_lb_rule.create_lb_rule()
+            rule = acs_lb_rule.present_lb_rule()
 
         result = acs_lb_rule.get_result(rule)
 
