@@ -31,6 +31,11 @@ options:
     description:
       - The name of the load balancer rule.
     required: true
+  description:
+    description:
+      - The description of the load balancer rule.
+    required: false
+    default: null
   algorithm:
     description:
       - Load balancer algorithm
@@ -194,7 +199,6 @@ state:
   sample: "Add"
 '''
 
-
 try:
     from cs import CloudStack, CloudStackException, read_config
     has_lib_cs = True
@@ -269,6 +273,7 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
             args['privateport'] = self.module.params.get('private_port')
             args['publicport']  = self.module.params.get('public_port')
             args['cidrlist']    = self.module.params.get('cidr')
+            args['description'] = self.module.params.get('description')
             args['protocol']    = self.module.params.get('protocol')
             res = self.cs.createLoadBalancerRule(**args)
             if 'errortext' in res:
@@ -284,6 +289,7 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
         args                = {}
         args['id']          = rule['id']
         args['algorithm']   = self.module.params.get('algorithm')
+        args['description'] = self.module.params.get('description')
         if self.has_changed(args, rule):
             self.result['changed'] = True
             if not self.module.check_mode:
@@ -316,6 +322,7 @@ def main():
     module = AnsibleModule(
         argument_spec = dict(
             name = dict(required=True),
+            description = dict(default=None),
             algorithm = dict(choices=['source', 'roundrobin', 'leastconn'], default='source'),
             private_port = dict(type='int', default=None),
             public_port = dict(type='int', default=None),
