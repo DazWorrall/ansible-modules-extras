@@ -52,11 +52,11 @@ options:
       - Can not be changed once the rule exists due API limitation.
     required: true
     default: null
-  public_ip:
+  ip_address:
     description:
-      - Public ip address from where the network traffic will be load balanced from
-    required: false
-    default: null
+      - Public IP address from where the network traffic will be load balanced from.
+    required: true
+    aliases: [ 'public_ip' ]
   open_firewall:
     description:
       - Whether the firewall rule for public port should be created, while creating the new rule.
@@ -218,17 +218,6 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
             'protocol': 'protocol',
         }
 
-    def get_ip_address(self, ip_address, key=None):
-        args = {}
-        args['ipaddress'] = ip_address
-        args['account'] = self.get_account(key='name')
-        args['domainid'] = self.get_domain(key='id')
-        args['projectid'] = self.get_project(key='id')
-        ip_addresses = self.cs.listPublicIpAddresses(**args)
-
-        if ip_addresses:
-            self.ip_address = ip_addresses['publicipaddress'][0]
-        return self._get_by_key(key, self.ip_address)
 
     def get_rule(self, **kwargs):
         rules = self.cs.listLoadBalancerRules(**kwargs)
@@ -241,7 +230,7 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
             'domainid': self.get_domain(key='id'),
             'projectid': self.get_project(key='id'),
             'zoneid': self.get_zone(key='id'),
-            'publicipid': self.get_ip_address(self.module.params.get('public_ip'), key='id'),
+            'publicipid': self.get_ip_address(key='id'),
             'name': self.module.params.get('name'),
         }
 
@@ -297,10 +286,10 @@ def main():
             private_port = dict(type='int', required=False),
             public_port = dict(type='int', required=False),
             state = dict(choices=['present', 'absent'], default='present'),
-            public_ip = dict(required=False),
             cidr = dict(required=False),
             protocol = dict(required=False),
             project = dict(default=None, required=False),
+            ip_address = dict(required=True, aliases=['public_ip']),
             open_firewall = dict(choices=BOOLEANS, default=False),
             zone = dict(default=None),
             domain = dict(default=None),
