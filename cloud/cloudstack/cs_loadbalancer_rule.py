@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # (c) 2015, Darren Worrall <darren@iweb.co.uk>
+# (c) 2015, René Moser <mail@renemoser.net>
 #
 # This file is part of Ansible
 #
@@ -21,16 +22,23 @@
 DOCUMENTATION = '''
 ---
 module: cs_loadbalancer_rule
-short_description: Manages load balancer rules
+short_description: Manages load balancer rules on Apache CloudStack based clouds.
 description:
-    - Add or remove load balancer rules
+    - Add, update and remove load balancer rules.
 version_added: '2.0'
-author: "Darren Worrall @dazworrall"
+author:
+    - "Darren Worrall (@dazworrall)"
+    - "René Moser (@resmo)"
 options:
   name:
     description:
-      - The name of the load balancer rule
+      - The name of the load balancer rule.
     required: true
+  description:
+    description:
+      - The description of the load balancer rule.
+    required: false
+    default: null
   algorithm:
     description:
       - Load balancer algorithm
@@ -40,22 +48,23 @@ options:
     default: 'source'
   private_port:
     description:
-      - The private port of the private ip address/virtual machine where the
-        network traffic will be load balanced to
+      - The private port of the private ip address/virtual machine where the network traffic will be load balanced to.
       - Required when using C(state=present).
+      - Can not be changed once the rule exists due API limitation.
     required: false
     default: null
   public_port:
     description:
-      - The public port from where the network traffic will be load balanced from
+      - The public port from where the network traffic will be load balanced from.
       - Required when using C(state=present).
+      - Can not be changed once the rule exists due API limitation.
     required: true
     default: null
-  public_ip:
+  ip_address:
     description:
-      - Public ip address from where the network traffic will be load balanced from
-    required: false
-    default: null
+      - Public IP address from where the network traffic will be load balanced from.
+    required: true
+    aliases: [ 'public_ip' ]
   open_firewall:
     description:
       - Whether the firewall rule for public port should be created, while creating the new rule.
@@ -64,12 +73,12 @@ options:
     default: false
   cidr:
     description:
-      - CIDR (full notation) to be used for firewall rule if required
     required: false
     default: null
   protocol:
     description:
       - The protocol to be used on the load balancer
+      - CIDR (full notation) to be used for firewall rule if required.
     required: false
     default: null
   project:
@@ -79,7 +88,7 @@ options:
     default: null
   state:
     description:
-      - State of the instance.
+      - State of the rule.
     required: true
     default: 'present'
     choices: [ 'present', 'absent' ]
@@ -112,10 +121,20 @@ EXAMPLES = '''
     public_port: 80
     private_port: 8080
 
+# update algorithm of an existing load balancer rule
+- local_action:
+    module: cs_loadbalancer_rule
+    name: balance_http
+    public_ip: 1.2.3.4
+    algorithm: roundrobin
+    public_port: 80
+    private_port: 8080
+
 # Delete a load balancer rule
 - local_action:
     module: cs_loadbalancer_rule
     name: balance_http
+    public_ip: 1.2.3.4
     state: absent
 '''
 
@@ -146,8 +165,57 @@ domain:
   returned: success
   type: string
   sample: example domain
+algorithm:
+  description: Load balancer algorithm used.
+  returned: success
+  type: string
+  sample: "source"
+cidr:
+  description: CIDR to forward traffic from.
+  returned: success
+  type: string
+  sample: ""
+name:
+  description: Name of the rule.
+  returned: success
+  type: string
+  sample: "http-lb"
+description:
+  description: Description of the rule.
+  returned: success
+  type: string
+  sample: "http load balancer rule"
+protocol:
+  description: Protocol of the rule.
+  returned: success
+  type: string
+  sample: "tcp"
+public_port:
+  description: Public port.
+  returned: success
+  type: string
+  sample: 80
+private_port:
+  description: Private IP address.
+  returned: success
+  type: string
+  sample: 80
+public_ip:
+  description: Public IP address.
+  returned: success
+  type: string
+  sample: "1.2.3.4"
+tags:
+  description: List of resource tags associated with the rule.
+  returned: success
+  type: dict
+  sample: '[ { "key": "foo", "value": "bar" } ]'
+state:
+  description: State of the rule.
+  returned: success
+  type: string
+  sample: "Add"
 '''
-
 
 try:
     from cs import CloudStack, CloudStackException, read_config
@@ -165,29 +233,22 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
         super(AnsibleCloudStackLBRule, self).__init__(module)
         self.returns = {
             'publicip': 'public_ip',
-            'publicport': 'public_port',
-            'privateport': 'private_port',
             'algorithm': 'algorithm',
             'cidrlist': 'cidr',
             'protocol': 'protocol',
         }
+        # these values will be casted to int
+        self.returns_to_int = {
+            'publicport': 'public_port',
+            'privateport': 'private_port',
+        }
 
-    def get_ip_address(self, ip_address, key=None):
-        args = {}
-        args['ipaddress'] = ip_address
-        args['account'] = self.get_account(key='name')
-        args['domainid'] = self.get_domain(key='id')
-        args['projectid'] = self.get_project(key='id')
-        ip_addresses = self.cs.listPublicIpAddresses(**args)
-
-        if ip_addresses:
-            self.ip_address = ip_addresses['publicipaddress'][0]
-        return self._get_by_key(key, self.ip_address)
 
     def get_rule(self, **kwargs):
         rules = self.cs.listLoadBalancerRules(**kwargs)
         if rules:
             return rules['loadbalancerrule'][0]
+
 
     def _get_common_args(self):
         return {
@@ -195,40 +256,74 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
             'domainid': self.get_domain(key='id'),
             'projectid': self.get_project(key='id'),
             'zoneid': self.get_zone(key='id'),
-            'publicipid': self.get_ip_address(self.module.params.get('public_ip'), key='id'),
+            'publicipid': self.get_ip_address(key='id'),
             'name': self.module.params.get('name'),
         }
 
-    def create_lb_rule(self):
+
+    def present_lb_rule(self):
+        missing_params = []
+        for required_params in [
+            'algorithm',
+            'private_port',
+            'public_port',
+        ]:
+            if not self.module.params.get(required_params):
+                missing_params.append(required_params)
+        if missing_params:
+            self.module.fail_json(msg="missing required arguments: %s" % ','.join(missing_params))
+
         args = self._get_common_args()
         rule = self.get_rule(**args)
-        algorithm = self.module.params.get('algorithm')
-        privateport = self.module.params.get('private_port')
-        publicport = self.module.params.get('public_port')
-        if not all([algorithm, privateport, privateport]):
-            self.module.fail_json(msg="algorithm, private_port and public_port are required to create a rule")
-        if not rule:
-            self.result['changed'] = True
-        if not rule and not self.module.check_mode:
-            args.update({
-                'algorithm': algorithm,
-                'privateport': privateport,
-                'publicport': publicport,
-                'cidrlist': self.module.params.get('cidr'),
-                'protocol': self.module.params.get('protocol'),
-            })
+        if rule:
+            rule = self._update_lb_rule(rule)
+        else:
+            rule = self._create_lb_rule(rule)
+
+        if rule:
+            rule = self.ensure_tags(resource=rule, resource_type='LoadBalancer')
+        return rule
+
+
+    def _create_lb_rule(self, rule):
+        self.result['changed'] = True
+        if not self.module.check_mode:
+            args = self._get_common_args()
+            args['algorithm']   = self.module.params.get('algorithm')
+            args['privateport'] = self.module.params.get('private_port')
+            args['publicport']  = self.module.params.get('public_port')
+            args['cidrlist']    = self.module.params.get('cidr')
+            args['description'] = self.module.params.get('description')
+            args['protocol']    = self.module.params.get('protocol')
             res = self.cs.createLoadBalancerRule(**args)
             if 'errortext' in res:
                 self.module.fail_json(msg="Failed: '%s'" % res['errortext'])
 
             poll_async = self.module.params.get('poll_async')
             if poll_async:
-                res = self.poll_job(res, 'loadbalancer')
-            rule = res
-
+                rule = self.poll_job(res, 'loadbalancer')
         return rule
 
-    def delete_lb_rule(self):
+
+    def _update_lb_rule(self, rule):
+        args                = {}
+        args['id']          = rule['id']
+        args['algorithm']   = self.module.params.get('algorithm')
+        args['description'] = self.module.params.get('description')
+        if self.has_changed(args, rule):
+            self.result['changed'] = True
+            if not self.module.check_mode:
+                res = self.cs.updateLoadBalancerRule(**args)
+                if 'errortext' in res:
+                    self.module.fail_json(msg="Failed: '%s'" % res['errortext'])
+
+                poll_async = self.module.params.get('poll_async')
+                if poll_async:
+                    rule = self.poll_job(res, 'loadbalancer')
+        return rule
+
+
+    def absent_lb_rule(self):
         args = self._get_common_args()
         rule = self.get_rule(**args)
         if rule:
@@ -247,14 +342,15 @@ def main():
     module = AnsibleModule(
         argument_spec = dict(
             name = dict(required=True),
-            algorithm = dict(choices=['source', 'roundrobin', 'leastconn'], required=False, default='source'),
-            private_port = dict(type='int', required=False),
-            public_port = dict(type='int', required=False),
+            description = dict(default=None),
+            algorithm = dict(choices=['source', 'roundrobin', 'leastconn'], default='source'),
+            private_port = dict(type='int', default=None),
+            public_port = dict(type='int', default=None),
             state = dict(choices=['present', 'absent'], default='present'),
-            public_ip = dict(required=False),
-            cidr = dict(required=False),
-            protocol = dict(required=False),
-            project = dict(default=None, required=False),
+            ip_address = dict(required=True, aliases=['public_ip']),
+            cidr = dict(default=None),
+            protocol = dict(default=None),
+            project = dict(default=None),
             open_firewall = dict(choices=BOOLEANS, default=False),
             zone = dict(default=None),
             domain = dict(default=None),
@@ -281,9 +377,9 @@ def main():
 
         state = module.params.get('state')
         if state in ['absent']:
-            rule = acs_lb_rule.delete_lb_rule()
+            rule = acs_lb_rule.absent_lb_rule()
         else:
-            rule = acs_lb_rule.create_lb_rule()
+            rule = acs_lb_rule.present_lb_rule()
 
         result = acs_lb_rule.get_result(rule)
 
