@@ -235,7 +235,7 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
             'projectid': self.get_project(key='id'),
         }
 
-    def _change_members(self, operation):
+    def _ensure_members(self, operation):
         if operation not in ['add', 'remove']:
             self.module.fail_json(msg="Bad operation: %s" % operation)
 
@@ -286,11 +286,11 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
 
 
     def add_members(self):
-        return self._change_members('add')
+        return self._ensure_members('add')
 
 
     def remove_members(self):
-        return self._change_members('remove')
+        return self._ensure_members('remove')
 
 
     def get_result(self, rule):
