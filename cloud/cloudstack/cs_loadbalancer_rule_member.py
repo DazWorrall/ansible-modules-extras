@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # (c) 2015, Darren Worrall <darren@iweb.co.uk>
+# (c) 2015, René Moser <mail@renemoser.net>
 #
 # This file is part of Ansible
 #
@@ -25,7 +26,9 @@ short_description: Manages load balancer rule members on Apache CloudStack based
 description:
     - Add and remove load balancer rule members.
 version_added: '2.0'
-author: "Darren Worrall @dazworrall"
+author:
+    - "Darren Worrall (@dazworrall)"
+    - "René Moser (@resmo)"
 options:
   name:
     description:
@@ -332,7 +335,7 @@ def main():
             state = dict(choices=['present', 'absent'], default='present'),
             zone = dict(default=None),
             domain = dict(default=None),
-            project = dict(default=None, required=False),
+            project = dict(default=None),
             account = dict(default=None),
             poll_async = dict(choices=BOOLEANS, default=True),
             api_key = dict(default=None),
