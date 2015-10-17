@@ -246,6 +246,14 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
             'projectid': self.get_project(key='id'),
         }
 
+
+    def _get_members_of_rule(self, rule):
+        res = self.cs.listLoadBalancerRuleInstances(id=rule['id'])
+        if 'errortext' in res:
+            self.module.fail_json(msg="Failed: '%s'" % res['errortext'])
+        return res.get('loadbalancerruleinstance', [])
+
+
     def _ensure_members(self, operation):
         if operation not in ['add', 'remove']:
             self.module.fail_json(msg="Bad operation: %s" % operation)
@@ -253,11 +261,13 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
         rule = self.get_rule()
         if not rule:
             self.module.fail_json(msg="Unknown rule: %s" % self.module.params.get('name'))
-        res = self.cs.listLoadBalancerRuleInstances(id=rule['id'])
+
         existing = {}
-        for vm in res.get('loadbalancerruleinstance', []):
+        for vm in self._get_members_of_rule(rule=rule):
             existing[vm['name']] = vm['id']
+
         wanted_names = self.module.params.get('vms')
+
         if operation =='add':
             cs_func = self.cs.assignToLoadBalancerRule
             to_change = set(wanted_names) - set(existing.keys())
