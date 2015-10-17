@@ -339,33 +339,28 @@ class AnsibleCloudStackLBRule(AnsibleCloudStack):
 
 
 def main():
+    argument_spec = cs_argument_spec()
+    argument_spec.update(dict(
+        name = dict(required=True),
+        description = dict(default=None),
+        algorithm = dict(choices=['source', 'roundrobin', 'leastconn'], default='source'),
+        private_port = dict(type='int', default=None),
+        public_port = dict(type='int', default=None),
+        state = dict(choices=['present', 'absent'], default='present'),
+        ip_address = dict(required=True, aliases=['public_ip']),
+        cidr = dict(default=None),
+        protocol = dict(default=None),
+        project = dict(default=None),
+        open_firewall = dict(choices=BOOLEANS, default=False),
+        zone = dict(default=None),
+        domain = dict(default=None),
+        account = dict(default=None),
+        poll_async = dict(choices=BOOLEANS, default=True),
+    ))
+
     module = AnsibleModule(
-        argument_spec = dict(
-            name = dict(required=True),
-            description = dict(default=None),
-            algorithm = dict(choices=['source', 'roundrobin', 'leastconn'], default='source'),
-            private_port = dict(type='int', default=None),
-            public_port = dict(type='int', default=None),
-            state = dict(choices=['present', 'absent'], default='present'),
-            ip_address = dict(required=True, aliases=['public_ip']),
-            cidr = dict(default=None),
-            protocol = dict(default=None),
-            project = dict(default=None),
-            open_firewall = dict(choices=BOOLEANS, default=False),
-            zone = dict(default=None),
-            domain = dict(default=None),
-            account = dict(default=None),
-            poll_async = dict(choices=BOOLEANS, default=True),
-            api_key = dict(default=None),
-            api_secret = dict(default=None, no_log=True),
-            api_url = dict(default=None),
-            api_http_method = dict(choices=['get', 'post'], default='get'),
-            api_timeout = dict(type='int', default=10),
-            api_region = dict(default='cloudstack'),
-        ),
-        required_together = (
-            ['api_key', 'api_secret', 'api_url'],
-        ),
+        argument_spec=argument_spec,
+        required_together=cs_required_together(),
         supports_check_mode=True
     )
 
