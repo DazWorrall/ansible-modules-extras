@@ -21,25 +21,25 @@
 DOCUMENTATION = '''
 ---
 module: cs_loadbalancer_rule_member
-short_description: Manages load balancer rules
+short_description: Manages load balancer rule members on Apache CloudStack based clouds.
 description:
-    - Add or remove load balancer rules
+    - Add and remove load balancer rule members.
 version_added: '2.0'
 author: "Darren Worrall @dazworrall"
 options:
   name:
     description:
-      - The name of the load balancer rule
+      - The name of the load balancer rule.
     required: true
   vms:
     description:
-      - List of VMs to assign to or remove from the rule
+      - List of VMs to assign to or remove from the rule.
     required: true
     type: list
     aliases: [ 'vm' ]
   state:
     description:
-      - Should the VMs be present or absent from the rule
+      - Should the VMs be present or absent from the rule.
     required: true
     default: 'present'
     choices: [ 'present', 'absent' ]
@@ -60,7 +60,7 @@ options:
     default: null
   zone:
     description:
-      - Name of the zone in which the rule shoud be located.
+      - Name of the zone in which the rule should be located.
       - If not set, default zone is used.
     required: false
     default: null
@@ -68,21 +68,21 @@ extends_documentation_fragment: cloudstack
 '''
 
 EXAMPLES = '''
-# Add VMs to Load Balancer
+# Add VMs to an exising load balancer
 - local_action:
     module: cs_loadbalancer_rule_member
     name: balance_http
     vms:
-      - VM1
-      - VM2
+      - web01
+      - web02
 
-# Remove VMs from Load Balancer
+# Remove a VM from an existing load balancer
 - local_action:
     module: cs_loadbalancer_rule_member
     name: balance_http
     vms:
-      - VM3
-      - VM4
+      - web01
+      - web02
     state: absent
 
 # Rolling upgrade of hosts
@@ -93,18 +93,16 @@ EXAMPLES = '''
       local_action:
       module: cs_loadbalancer_rule_member
       name: balance_http
-      vms:
-        - "{{ ansible_hostname }}"
+      vm: "{{ ansible_hostname }}"
       state: absent
   tasks:
     # Perform update
   post_tasks:
-    - name: Add to loadbalancer
+    - name: Add to load balancer
       local_action:
       module: cs_loadbalancer_rule_member
       name: balance_http
-      vms:
-        - "{{ ansible_hostname }}"
+      vm: "{{ ansible_hostname }}"
       state: present
 '''
 
