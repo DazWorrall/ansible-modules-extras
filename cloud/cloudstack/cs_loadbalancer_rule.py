@@ -352,6 +352,7 @@ def main():
         protocol = dict(default=None),
         project = dict(default=None),
         open_firewall = dict(choices=BOOLEANS, default=False),
+        tags = dict(type='list', aliases=['tag'], default=None),
         zone = dict(default=None),
         domain = dict(default=None),
         account = dict(default=None),
