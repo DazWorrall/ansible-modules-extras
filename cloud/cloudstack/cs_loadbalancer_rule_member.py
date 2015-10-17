@@ -133,6 +133,61 @@ domain:
   returned: success
   type: string
   sample: example domain
+algorithm:
+  description: Load balancer algorithm used.
+  returned: success
+  type: string
+  sample: "source"
+cidr:
+  description: CIDR to forward traffic from.
+  returned: success
+  type: string
+  sample: ""
+name:
+  description: Name of the rule.
+  returned: success
+  type: string
+  sample: "http-lb"
+description:
+  description: Description of the rule.
+  returned: success
+  type: string
+  sample: "http load balancer rule"
+protocol:
+  description: Protocol of the rule.
+  returned: success
+  type: string
+  sample: "tcp"
+public_port:
+  description: Public port.
+  returned: success
+  type: string
+  sample: 80
+private_port:
+  description: Private IP address.
+  returned: success
+  type: string
+  sample: 80
+public_ip:
+  description: Public IP address.
+  returned: success
+  type: string
+  sample: "1.2.3.4"
+vms:
+  description: Rule members.
+  returned: success
+  type: list
+  sample: '[ "web01", "web02" ]'
+tags:
+  description: List of resource tags associated with the rule.
+  returned: success
+  type: dict
+  sample: '[ { "key": "foo", "value": "bar" } ]'
+state:
+  description: State of the rule.
+  returned: success
+  type: string
+  sample: "Add"
 '''
 
 
@@ -147,6 +202,21 @@ from ansible.module_utils.cloudstack import *
 
 
 class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
+
+    def __init__(self, module):
+        super(AnsibleCloudStackLBRuleMember, self).__init__(module)
+        self.returns = {
+            'publicip': 'public_ip',
+            'algorithm': 'algorithm',
+            'cidrlist': 'cidr',
+            'protocol': 'protocol',
+        }
+        # these values will be casted to int
+        self.returns_to_int = {
+            'publicport': 'public_port',
+            'privateport': 'private_port',
+        }
+
 
     def get_rule(self):
         args               = self._get_common_args()
@@ -221,6 +291,15 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
 
     def remove_members(self):
         return self._change_members('remove')
+
+
+    def get_result(self, rule):
+        super(AnsibleCloudStackLBRuleMember, self).get_result(rule)
+        if rule:
+            self.result['vms'] = []
+            for vm in self._get_members_of_rule(rule=rule):
+                self.result['vms'].append(vm['name'])
+        return self.result
 
 
 def main():
