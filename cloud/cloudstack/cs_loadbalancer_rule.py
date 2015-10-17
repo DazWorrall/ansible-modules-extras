@@ -46,6 +46,11 @@ options:
     required: false
     choices: [ 'source', 'roundrobin', 'leastconn' ]
     default: 'source'
+  protocol:
+    description:
+      - Protocol for the load balancer rule.
+    required: false
+    default: null
   private_port:
     description:
       - The private port of the private ip address/virtual machine where the network traffic will be load balanced to.
@@ -346,10 +351,10 @@ def main():
         algorithm = dict(choices=['source', 'roundrobin', 'leastconn'], default='source'),
         private_port = dict(type='int', default=None),
         public_port = dict(type='int', default=None),
+        protocol = dict(default=None),
         state = dict(choices=['present', 'absent'], default='present'),
         ip_address = dict(required=True, aliases=['public_ip']),
         cidr = dict(default=None),
-        protocol = dict(default=None),
         project = dict(default=None),
         open_firewall = dict(choices=BOOLEANS, default=False),
         tags = dict(type='list', aliases=['tag'], default=None),
