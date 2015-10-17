@@ -31,6 +31,13 @@ options:
     description:
       - The name of the load balancer rule.
     required: true
+  ip_address:
+    description:
+      - Public IP address from where the network traffic will be load balanced from.
+      - Only needed to find the rule if C(name) is not unique.
+    required: false
+    default: null
+    aliases: [ 'public_ip' ]
   vms:
     description:
       - List of VMs to assign to or remove from the rule.
@@ -222,8 +229,12 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
         args               = self._get_common_args()
         args['name']       = self.module.params.get('name')
         args['zoneid']     = self.get_zone(key='id')
+        if self.module.params.get('ip_address'):
+            args['publicipid'] = self.get_ip_address(key='id')
         rules = self.cs.listLoadBalancerRules(**args)
         if rules:
+            if len(rules['loadbalancerrule']) > 1:
+                self.module.fail_json(msg="More than one rule having name %s. Please pass 'ip_address' as well." % args['name'])
             return rules['loadbalancerrule'][0]
         return None
 
@@ -306,6 +317,7 @@ def main():
     module = AnsibleModule(
         argument_spec = dict(
             name = dict(required=True),
+            ip_address = dict(default=None, aliases=['public_ip']),
             vms = dict(required=True, aliases=['vm'], type='list'),
             state = dict(choices=['present', 'absent'], default='present'),
             zone = dict(default=None),
