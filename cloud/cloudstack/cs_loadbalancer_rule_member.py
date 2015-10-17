@@ -148,24 +148,28 @@ from ansible.module_utils.cloudstack import *
 
 class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
 
-    def get_rule(self, **kwargs):
-        rules = self.cs.listLoadBalancerRules(**kwargs)
+    def get_rule(self):
+        args               = self._get_common_args()
+        args['name']       = self.module.params.get('name')
+        args['zoneid']     = self.get_zone(key='id')
+        rules = self.cs.listLoadBalancerRules(**args)
         if rules:
             return rules['loadbalancerrule'][0]
+        return None
+
 
     def _get_common_args(self):
         return {
             'account': self.get_account(key='name'),
             'domainid': self.get_domain(key='id'),
-            'zoneid': self.get_zone(key='id'),
             'projectid': self.get_project(key='id'),
         }
 
     def _change_members(self, operation):
         if operation not in ['add', 'remove']:
             self.module.fail_json(msg="Bad operation: %s" % operation)
-        args = self._get_common_args()
-        rule = self.get_rule(name=self.module.params.get('name'), **args)
+
+        rule = self.get_rule()
         if not rule:
             self.module.fail_json(msg="Unknown rule: %s" % self.module.params.get('name'))
         res = self.cs.listLoadBalancerRuleInstances(id=rule['id'])
@@ -179,8 +183,11 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
         else:
             cs_func = self.cs.removeFromLoadBalancerRule
             to_change = set(wanted_names) & set(existing.keys())
+
         if not to_change:
             return rule
+
+        args = self._get_common_args()
         vms = self.cs.listVirtualMachines(**args)
         to_change_ids = []
         for name in to_change:
@@ -190,8 +197,10 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
                     break
             else:
                 self.module.fail_json(msg="Unknown VM: %s" % name)
+
         if to_change_ids:
             self.result['changed'] = True
+
         if to_change_ids and not self.module.check_mode:
             res = cs_func(
                 id = rule['id'],
@@ -202,10 +211,13 @@ class AnsibleCloudStackLBRuleMember(AnsibleCloudStack):
             poll_async = self.module.params.get('poll_async')
             if poll_async:
                 self.poll_job(res)
+                rule = self.get_rule()
         return rule
+
 
     def add_members(self):
         return self._change_members('add')
+
 
     def remove_members(self):
         return self._change_members('remove')
